@@ -8,7 +8,8 @@ import sistemaDistribuido.util.Escribano;
  * Carlos Nicolás Sosa Chiunti
  * Sem. SOR
  * Ciclo 2021B
- * 03/octubre/2021
+ * 07/noviembre/2021
+ * Actividad de cierre 2
  * 
  */
 
@@ -42,7 +43,7 @@ public class ProcesoCliente extends Proceso {
 	}
 	
 	private String cleanInput(byte[] s) {
-		var req = new byte[1016];
+		var req = new byte[1015];
 		int idx = 0;
 		
 		for (int i = 8; i < s.length; i++) {
@@ -79,8 +80,8 @@ public class ProcesoCliente extends Proceso {
 		
 		var reqInfo = request.getBytes();
 
-		solCliente[9] = (byte) codOp;
-		System.arraycopy(reqInfo, 0, solCliente, 10, reqInfo.length);
+		solCliente[8] = (byte) codOp;
+		System.arraycopy(reqInfo, 0, solCliente, 9, reqInfo.length);
 		
 		Nucleo.send(248, solCliente);
 		

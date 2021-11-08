@@ -6,6 +6,7 @@ import java.io.FileWriter;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 import sistemaDistribuido.sistema.clienteServidor.modoMonitor.Nucleo;
@@ -17,7 +18,8 @@ import sistemaDistribuido.util.Pausador;
  * Carlos Nicolás Sosa Chiunti
  * Sem. SOR
  * Ciclo 2021B
- * 03/octubre/2021
+ * 07/noviembre/2021
+ * Actividad de Cierre 2
  * 
  */
 
@@ -38,7 +40,6 @@ public class ProcesoServidor extends Proceso {
 		File f = new File(filename);
 		
 		if (f.createNewFile()) {
-			//imprimeln("¡Archivo " + filename + "creado exitosamente!");
 			response = "¡Archivo " + filename + " creado exitosamente!";
 		} else {
 			response = "Error realizando operacion.";
@@ -50,7 +51,6 @@ public class ProcesoServidor extends Proceso {
 		
 		if (f.isFile()) {
 			if (f.delete()) {
-				//imprimeln("¡Archivo " + filename + "eliminado exitosamente!");
 				response = "¡Archivo " + filename + " eliminado exitosamente!";
 			} else {
 				response = "Error realizando operacion.";
@@ -116,10 +116,10 @@ public class ProcesoServidor extends Proceso {
 	}
 	
 	private String cleanInput(byte[] s) {
-		var req = new byte[1014];
+		var req = new byte[1015];
 		int idx = 0;
 		
-		for (int i = 10; i < s.length; i++) {
+		for (int i = 9; i < s.length; i++) {
 			if (s[i] > 0) {
 				req[idx++] = s[i];
 			}
@@ -151,7 +151,7 @@ public class ProcesoServidor extends Proceso {
 		while(continuar()) {
 			Nucleo.receive(dameID(), solServidor);
 			
-			requestOpCode = solServidor[9];
+			requestOpCode = solServidor[8];
 			imprimeln("Petición del cliente: " + requestOpCode);
 			
 			String filename = cleanInput(solServidor);
@@ -196,13 +196,15 @@ public class ProcesoServidor extends Proceso {
 			}
 						
 			var r = response.getBytes();
-						
 			System.arraycopy(r, 0, respServidor, 8, r.length);
+			byte[] orig = new byte[4];
+			System.arraycopy(solServidor, 0, orig, 0, 4);
+			int origen = ByteBuffer.wrap(orig).getInt();
 			
 			Pausador.pausa(1000);  //sin esta l�nea es posible que Servidor solicite send antes que Cliente solicite receive
-			imprimeln("enviando respuesta");
+			imprimeln("Enviando respuesta al id " + origen);
 			
-			Nucleo.send(0,respServidor);
+			Nucleo.send(origen, respServidor);
 		}
 	}
 }
