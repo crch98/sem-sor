@@ -197,40 +197,41 @@ public final class MicroNucleo extends MicroNucleoBase{
 				imprimeln("Despertando al cliente del receive");
 				Proceso p2 = dameProcesoLocal(origen);
 				reanudarProceso(p2);
-			}
-			
-			if (p != null) {
-				imprimeln("Buscando si el proceso destino está en espera");
-				byte[] arr = tr.get(destino);
-				
-				if (arr != null) {
-					imprimeln("Quitando al destino de la tabla");
-					tr.remove(destino);
-					
-					imprimeln("Guardando datos del origen");
-					MaquinaProceso mp = new MaquinaProceso(origen, ip);
-					te.put(origen, mp);
-					
-					imprimeln("Copiando datos al espacio del proceso destino");
-					System.arraycopy(buffer, 0, arr, 0, arr.length);
-					
-					imprimeln("Reanudando proceso destino");
-					reanudarProceso(p);
-				} else {} 
 			} else {
-				imprimeln("Creando paquete AU");
-				buffer[1023] = -1;
-				try {
-					DatagramPacket dp2 = new DatagramPacket(buffer, buffer.length,
-							InetAddress.getByName(ip), damePuertoRecepcion());
-					DatagramSocket ds = dameSocketEmision();
-					ds.send(dp2);
-				} catch (UnknownHostException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
+				if (p != null) {
+					imprimeln("Buscando si el proceso destino está en espera");
+					byte[] arr = tr.get(destino);
+					
+					if (arr != null) {
+						imprimeln("Quitando al destino de la tabla");
+						tr.remove(destino);
+						
+						imprimeln("Guardando datos del origen");
+						MaquinaProceso mp = new MaquinaProceso(origen, ip);
+						te.put(origen, mp);
+						
+						imprimeln("Copiando datos al espacio del proceso destino");
+						System.arraycopy(buffer, 0, arr, 0, arr.length);
+						
+						imprimeln("Reanudando proceso destino");
+						reanudarProceso(p);
+					} else {} 
+				} else {
+					imprimeln("Creando paquete AU");
+					buffer[1023] = -1;
+					try {
+						DatagramPacket dp2 = new DatagramPacket(buffer, buffer.length,
+								InetAddress.getByName(ip), damePuertoRecepcion());
+						DatagramSocket ds = dameSocketEmision();
+						ds.send(dp2);
+					} catch (UnknownHostException e) {
+						e.printStackTrace();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
 	}
+	
 }
