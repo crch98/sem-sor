@@ -7,21 +7,24 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Hashtable;
+import java.util.LinkedList;
 
 import sistemaDistribuido.sistema.clienteServidor.modoUsuario.Proceso;
+import sistemaDistribuido.util.Pausador;
 
 /**
  * Carlos Nicolás Sosa Chiunti
  * Sem. SOR
  * Ciclo 2021B
- * 07/noviembre/2021
- * Actividad de cierre 2
+ * 05/diciembre/2021
+ * Trabajo Final 1
  * 
  */
 
 public final class MicroNucleo extends MicroNucleoBase{
 	Hashtable<Integer, ParMaquinaProceso> te = new Hashtable<Integer, ParMaquinaProceso>();
 	Hashtable<Integer, byte[]> tr = new Hashtable<Integer, byte[]>();
+	Hashtable<Integer, LinkedList<byte[]>> buzones = new Hashtable<>();
 	
 	// Implementación de ParMaquinaProceso
 	class MaquinaProceso implements ParMaquinaProceso {
@@ -39,6 +42,31 @@ public final class MicroNucleo extends MicroNucleoBase{
 			
 		public int dameID() {
 			return id;
+		}
+	}
+	
+	private class TAThread extends Thread {
+		private byte[] b;
+		private String ip;
+		
+		public TAThread(byte[] b, String ip) {
+			this.b = b;
+			this.ip = ip;
+		}
+		
+		public void run() {
+			imprimeln("Este hilo esperará 5 segundos...");
+			Pausador.pausa(5000);
+			b[1023] = 0;
+			
+			try {
+				DatagramPacket dp = new DatagramPacket(b, b.length, InetAddress.getByName(ip), damePuertoRecepcion());
+				DatagramSocket ds = new DatagramSocket();
+				ds.send(dp);
+				ds.close();
+			} catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -126,12 +154,29 @@ public final class MicroNucleo extends MicroNucleoBase{
 	 */
 	protected void receiveVerdadero(int addr,byte[] message){
 		//receiveFalso(addr,message);
-		imprimeln("Registrando datos en la tabla de recepción");
-		tr.put(addr, message);
+		LinkedList<byte[]> buzon = buzones.get(addr);
+		if (buzon == null) {
+			imprimeln("Registrando datos en la tabla de recepción");
+			tr.put(addr, message);
+			imprimeln("Suspendiendo proceso en espera de paquetes.");
+			suspenderProceso();
+		} else if (buzon.isEmpty()) {
+			imprimeln("El buzón se encuentra vacio...");
+			tr.put(addr, message);
+			imprimeln("Suspendiendo proceso.");
+			suspenderProceso();
+		} else {
+			imprimeln("Tomando la primera solicitud en buzón...");
+			byte[] req = buzon.poll();
+			System.arraycopy(req, 0, message, 0, message.length);
+		}
 		
-		imprimeln("Suspendiendo proceso en espera de paquetes.");
-		//el siguiente aplica para la pr�ctica #2
-		suspenderProceso();
+	}
+	
+	public void creaBuzon(int ID) {
+		LinkedList<byte[]> buzon = new LinkedList<>();
+		imprimeln("Creando buzón al servidor con ID: " + ID);
+		buzones.put(ID, buzon);
 	}
 
 	/**
@@ -197,6 +242,12 @@ public final class MicroNucleo extends MicroNucleoBase{
 				imprimeln("Despertando al cliente del receive");
 				Proceso p2 = dameProcesoLocal(origen);
 				reanudarProceso(p2);
+			} else if (buffer[1023] == -99) {
+				imprimeln("el paquete recibido es TA");
+				byte[] taBuffer = new byte[1024];
+				System.arraycopy(buffer, 0, taBuffer, 0, taBuffer.length);
+				TAThread t = new TAThread(taBuffer, ip);
+				t.run();
 			} else {
 				if (p != null) {
 					imprimeln("Buscando si el proceso destino está en espera");
@@ -215,7 +266,31 @@ public final class MicroNucleo extends MicroNucleoBase{
 						
 						imprimeln("Reanudando proceso destino");
 						reanudarProceso(p);
-					} else {} 
+					} else {
+						imprimeln("Servidor ocupado. Guardando solicitud en buzón...");
+						LinkedList<byte[]> buzon = buzones.get(destino);
+						
+						if (buzon.size() < 3) {
+							MaquinaProceso d = new MaquinaProceso(origen, ip);
+							te.put(origen, d);
+							imprimeln("Hay espacio en el buzón... Se guardará solicitud");
+							byte[] n = new byte[1024];
+							System.arraycopy(buffer, 0, n, 0, n.length);
+							buzon.offer(n);
+						} else {
+							imprimeln("No hay espacio en el buzón... Enviando TA");
+							buffer[1023] = -99;
+							try {
+								DatagramPacket dpTA = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(ip), damePuertoRecepcion());
+								DatagramSocket dsTA = dameSocketEmision();
+								dsTA.send(dpTA);
+							} catch (UnknownHostException e) {
+								e.printStackTrace();
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						}
+					} 
 				} else {
 					imprimeln("Creando paquete AU");
 					buffer[1023] = -1;

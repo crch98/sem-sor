@@ -18,8 +18,8 @@ import sistemaDistribuido.util.Pausador;
  * Carlos Nicolás Sosa Chiunti
  * Sem. SOR
  * Ciclo 2021B
- * 07/noviembre/2021
- * Actividad de Cierre 2
+ * 05/diciembre/2021
+ * Trabajo Final 1
  * 
  */
 
@@ -147,6 +147,8 @@ public class ProcesoServidor extends Proceso {
 		byte[] solServidor = new byte[BUFFER_SIZE];
 		byte[] respServidor;
 		byte requestOpCode;
+		
+		Nucleo.nucleo.creaBuzon(dameID());
 				
 		while(continuar()) {
 			Nucleo.receive(dameID(), solServidor);
@@ -201,7 +203,7 @@ public class ProcesoServidor extends Proceso {
 			System.arraycopy(solServidor, 0, orig, 0, 4);
 			int origen = ByteBuffer.wrap(orig).getInt();
 			
-			Pausador.pausa(1000);  //sin esta l�nea es posible que Servidor solicite send antes que Cliente solicite receive
+			Pausador.pausa(10000);  //sin esta l�nea es posible que Servidor solicite send antes que Cliente solicite receive
 			imprimeln("Enviando respuesta al id " + origen);
 			
 			Nucleo.send(origen, respServidor);
